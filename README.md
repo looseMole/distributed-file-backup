@@ -1,5 +1,5 @@
 **Disclaimer** \
-The distributed-file-backup repo is a personal project by looseMole, and is not intended for professional use. The 
+The distributed-file-backup repo is a personal project by looseMole and TidosDK, and is not intended for professional use. The 
 software is provided as-is, and no warranties of any kind is provided if someone were to run the software within.
 
 **Description** \
