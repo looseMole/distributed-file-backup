@@ -72,5 +72,16 @@ class file_handler:
     def download_file(self, link):
         pass
 
-    def check_files(self, links):
-        pass
+    def check_files(self):
+        for i in range(len(self.uploaded_files)):
+            keys = list(self.uploaded_files.keys())
+            key = keys[i]
+            # Deconstruct URL
+            string_list = self.uploaded_files[key].split('/')
+            print(string_list)
+
+            # Build URL again:
+            info_url = string_list[0] + "//api." + string_list[2] + "/v2/file/" + string_list[3] + "/info"
+            r = requests.get(url=info_url).json()
+            if r["status"]:
+                print("The " + key + " download on " + string_list[2] + " still valid.")
