@@ -1,7 +1,8 @@
 import os
 
-import requests
+import csv
 
+import requests
 
 class file_handler:
     uploaded_files = {}
@@ -13,7 +14,13 @@ class file_handler:
         pass
 
     def save_links(self):
-        pass
+        with open(".\\uploaded_files.csv", 'w') as f:
+            writer = csv.writer(f)
+            keys = list(self.uploaded_files.keys())
+            for i in range(len(self.uploaded_files)):
+                key = keys[i]
+                writer.writerow([key + "|" + self.uploaded_files[key]])
+            f.close()
 
     def upload_file(self, filepath, server):
         switcher = {
