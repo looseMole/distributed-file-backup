@@ -55,6 +55,7 @@ class file_handler:
             print("Invalid server.")
             return False
 
+        # TODO: Create exception handling for invalid filepath.
         with open(filepath, "rb") as a_file:
             filename = os.path.basename(filepath)
             _files = {"file": (filename, a_file)}
@@ -63,6 +64,7 @@ class file_handler:
 
         if r["status"]:
             self.uploaded_files[filename] = r["data"]["file"]["url"]["full"]
+            self.save_links()
             return True
         else:
             return False
