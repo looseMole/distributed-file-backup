@@ -8,10 +8,22 @@ class file_handler:
     uploaded_files = {}
 
     def __init__(self):
-        pass
+        self.load_links()
 
     def load_links(self):
-        pass
+        try:
+            with open(".\\uploaded_files.csv", 'r') as f:
+                csv_reader = csv.reader(f)
+                for line in csv_reader:
+                    if len(line) > 0:
+                        line_parts = line[0].split('|')
+                        self.uploaded_files[line_parts[0]] = line_parts[1]
+                f.close()
+            print("Following uploads loaded:")
+            print(self.uploaded_files.__str__())
+
+        except FileNotFoundError:
+            print("No previous uploads found")
 
     def save_links(self):
         with open(".\\uploaded_files.csv", 'w') as f:
