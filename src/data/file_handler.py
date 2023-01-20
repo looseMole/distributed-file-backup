@@ -24,6 +24,7 @@ class file_handler:
         self.are_servers_up()
         self.load_links()
 
+    # Loads information about previously uploaded files, from CSV-file.
     def load_links(self):
         try:
             with open(".\\uploaded_files.csv", 'r') as f:
@@ -44,6 +45,7 @@ class file_handler:
         except FileNotFoundError:
             print("No previous uploads found")
 
+    # Checks up-status of the servers specified in server_switcher. Prints result
     def are_servers_up(self):
         print("Checking servers' status...")
 
@@ -59,6 +61,7 @@ class file_handler:
             if servers_up == len(self.server_switcher.keys()):
                 print("All servers are up")
 
+    # Saves information from uploaded_files to a CSV-file.
     def save_links(self):
         with open(".\\uploaded_files.csv", 'w') as f:
             writer = csv.writer(f)
@@ -84,6 +87,8 @@ class file_handler:
                     break
                 sha1.update(data)
         return sha1.hexdigest()
+
+    # Uploads file to specified server, then calls save_links().
     def upload_file(self, filepath, server):
         url = self.server_switcher.get(server, "")
         if url == "":
@@ -113,6 +118,7 @@ class file_handler:
     def download_file(self, link):
         pass
 
+    # Checks status on previously uploaded files - prints results to console
     def check_files(self):
         for i in range(len(self.uploaded_files)):
             keys = list(self.uploaded_files.keys())
