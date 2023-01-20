@@ -6,8 +6,23 @@ import requests
 
 class file_handler:
     uploaded_files = {}
+    server_switcher = {
+        "anonfiles": "https://api.anonfiles.com/upload",
+        "filechan": "https://api.filechan.org/upload",
+        "letsupload": "https://api.letsupload.cc/upload",
+        "bayfiles": "https://api.bayfiles.com/upload",
+        "openload": "https://api.openload.cc/upload",
+        "megaupload": "https://api.megaupload.nz/upload",
+        "shareonline": "https://api.share-online.is/upload",
+        "vshare": "https://api.vshare.is/upload",
+        "hotfile": "https://api.hotfile.io/upload",
+        "rapidshare": "https://api.rapidshare.nu/upload",
+        "lolabits": "https://api.lolabits.se/upload",
+        "upvid": "https://api.upvid.cc/upload",
+    }
 
     def __init__(self):
+        self.areServersUp()
         self.load_links()
 
     def load_links(self):
@@ -25,6 +40,21 @@ class file_handler:
         except FileNotFoundError:
             print("No previous uploads found")
 
+    def areServersUp(self):
+        print("Checking servers' status...")
+
+        serversUp = 0
+        for key in self.server_switcher.keys():
+            url = self.server_switcher.get(key)
+            url = url.removesuffix("/upload")
+            r = requests.get(url)
+            if r.status_code == 200:  # Response 200 is optimal
+                serversUp += 1
+            else:
+                print(key + " status: Not optimal (Response: " + str(r.status_code) + ")")
+            if serversUp == len(self.server_switcher.keys()):
+                print("All servers are up")
+
     def save_links(self):
         with open(".\\uploaded_files.csv", 'w') as f:
             writer = csv.writer(f)
@@ -35,22 +65,7 @@ class file_handler:
             f.close()
 
     def upload_file(self, filepath, server):
-        switcher = {
-            "anonfiles": "https://api.anonfiles.com/upload",
-            "filechan": "https://api.filechan.org/upload",
-            "letsupload": "https://api.letsupload.cc/upload",
-            "bayfiles": "https://api.bayfiles.com/upload",
-            "openload": "https://api.openload.cc/upload",
-            "megaupload": "https://api.megaupload.nz/upload",
-            "shareonline": "https://api.share-online.is/upload",
-            "vshare": "https://api.vshare.is/upload",
-            "hotfile": "https://api.hotfile.io/upload",
-            "rapidshare": "https://api.rapidshare.nu/upload",
-            "lolabits": "https://api.lolabits.se/upload",
-            "upvid": "https://api.upvid.cc/upload",
-        }
-
-        url = switcher.get(server, "")
+        url = self.server_switcher.get(server, "")
         if url == "":
             print("Invalid server.")
             return False
