@@ -1,7 +1,6 @@
 import os
-
 import csv
-
+import hashlib
 import requests
 
 class file_handler:
@@ -32,7 +31,12 @@ class file_handler:
                 for line in csv_reader:
                     if len(line) > 0:
                         line_parts = line[0].split('|')
-                        self.uploaded_files[line_parts[0]] = line_parts[1]
+                        self.uploaded_files[line_parts[0]] = []
+                        i = 1
+                        # Info loaded in a loop, as files can have an arbitrary amount of download links.
+                        while i < len(line_parts):
+                            self.uploaded_files[line_parts[0]].append(line_parts[i])
+                            i += 1
                 f.close()
             print("Following uploads loaded:")
             print(self.uploaded_files.__str__())
@@ -61,9 +65,25 @@ class file_handler:
             keys = list(self.uploaded_files.keys())
             for i in range(len(self.uploaded_files)):
                 key = keys[i]
-                writer.writerow([key + "|" + self.uploaded_files[key]])
+                file_string = key
+                for i in range(len(self.uploaded_files[key])):
+                    file_string += "|" + self.uploaded_files[key][i]
+
+                writer.writerow([file_string])
             f.close()
 
+    # Returns hash of the file corresponding to the given filepath.
+    def get_file_hash(self, filepath):
+        BUF_SIZE = 65536  # Amount of bytes to process at a time, preventing huge memory usage.
+        sha1 = hashlib.sha1()
+
+        with open(filepath, "rb") as f:
+            while True:
+                data = f.read(BUF_SIZE)
+                if not data:
+                    break
+                sha1.update(data)
+        return sha1.hexdigest()
     def upload_file(self, filepath, server):
         url = self.server_switcher.get(server, "")
         if url == "":
@@ -78,8 +98,13 @@ class file_handler:
             print(r)  # Print response from server, received as a JSON.
 
         if r["status"]:
-            # TODO: Fix same file-name overriding existing URL- error
-            self.uploaded_files[filename] = r["data"]["file"]["url"]["full"]
+            file_hash = self.get_file_hash(filepath)
+            download_url = r["data"]["file"]["url"]["full"]
+            # If a file with this SHA1-hash has already been uploaded, append the download to that file.
+            if file_hash in self.uploaded_files:
+                self.uploaded_files[file_hash].append(download_url)
+            else:
+                self.uploaded_files[file_hash] = [filename, download_url]
             self.save_links()
             return True
         else:
@@ -92,13 +117,19 @@ class file_handler:
         for i in range(len(self.uploaded_files)):
             keys = list(self.uploaded_files.keys())
             key = keys[i]
-            # Deconstruct URL
-            string_list = self.uploaded_files[key].split('/')
-            
-            # Build URL again:
-            info_url = string_list[0] + "//api." + string_list[2] + "/v2/file/" + string_list[3] + "/info"
-            r = requests.get(url=info_url).json()
-            if r["status"]:
-                print("The " + key + " download on " + string_list[2] + " is still valid.")
 
-            # TODO: Automatically ask user to re-upload files from broken links
+            i = 1
+            while i < len(self.uploaded_files[key]):
+                # Deconstruct download URL
+                download_url = self.uploaded_files[key][i]
+                string_list = download_url.split('/')
+
+                # Build info URL:
+                info_url = string_list[0] + "//api." + string_list[2] + "/v2/file/" + string_list[3] + "/info"
+                r = requests.get(url=info_url).json()
+                if r["status"]:
+                    print("The " + self.uploaded_files[key][0] + " download on " + string_list[2] + " is still valid.")
+                else:
+                    print("The " + self.uploaded_files[key][0] + " link: " + download_url + " is broken.")
+                i += 1
+                # TODO: Automatically ask user to re-upload files from broken links
