@@ -63,6 +63,7 @@ class file_handler:
             print(r)  # Print response from server, received as a JSON.
 
         if r["status"]:
+            # TODO: Fix same file-name overriding existing URL- error
             self.uploaded_files[filename] = r["data"]["file"]["url"]["full"]
             self.save_links()
             return True
@@ -78,10 +79,11 @@ class file_handler:
             key = keys[i]
             # Deconstruct URL
             string_list = self.uploaded_files[key].split('/')
-            print(string_list)
-
+            
             # Build URL again:
             info_url = string_list[0] + "//api." + string_list[2] + "/v2/file/" + string_list[3] + "/info"
             r = requests.get(url=info_url).json()
             if r["status"]:
-                print("The " + key + " download on " + string_list[2] + " still valid.")
+                print("The " + key + " download on " + string_list[2] + " is still valid.")
+
+            # TODO: Automatically ask user to re-upload files from broken links
