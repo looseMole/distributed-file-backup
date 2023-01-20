@@ -22,7 +22,7 @@ class file_handler:
     }
 
     def __init__(self):
-        self.areServersUp()
+        self.are_servers_up()
         self.load_links()
 
     def load_links(self):
@@ -40,19 +40,19 @@ class file_handler:
         except FileNotFoundError:
             print("No previous uploads found")
 
-    def areServersUp(self):
+    def are_servers_up(self):
         print("Checking servers' status...")
 
-        serversUp = 0
+        servers_up = 0
         for key in self.server_switcher.keys():
             url = self.server_switcher.get(key)
             url = url.removesuffix("/upload")
             r = requests.get(url)
             if r.status_code == 200:  # Response 200 is optimal
-                serversUp += 1
+                servers_up += 1
             else:
                 print(key + " status: Not optimal (Response: " + str(r.status_code) + ")")
-            if serversUp == len(self.server_switcher.keys()):
+            if servers_up == len(self.server_switcher.keys()):
                 print("All servers are up")
 
     def save_links(self):
