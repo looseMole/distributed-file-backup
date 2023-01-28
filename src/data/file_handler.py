@@ -115,8 +115,30 @@ class file_handler:
         else:
             return False
 
-    def download_file(self, link):
-        pass
+    def download_file(self, file_name, url):
+        if not os.path.exists(".\\downloads"):
+            os.makedirs(".\\downloads")
+
+        # Get direct download link.
+        r = requests.get(url)
+        direct_url_start = r.text.find("https://cdn")
+        direct_url_end = r.text.find("\"", direct_url_start)
+        direct_url = r.text[direct_url_start:direct_url_end]
+
+        # Download file
+        file_bytes = requests.get(direct_url)
+        filepath = ".\\downloads\\" + file_name  # Path for downloaded file.
+
+        with open(filepath, 'wb') as f:
+            f.write(file_bytes.content)
+
+        # Check that downloaded file's hash matches the expected
+        downloaded_hash = self.get_file_hash(filepath)
+        if self.uploaded_files.get(downloaded_hash)[0] == file_name:
+            print(file_name + " downloaded successfully.")
+        else:
+            print("WARNING: Downloaded file \"" + file_name + "\"'s hash does not match saved info. It might have "
+                                                              "been tampered with.")
 
     # Checks status on previously uploaded files - prints results to console
     def check_files(self):
