@@ -3,6 +3,7 @@ import csv
 import hashlib
 import requests
 
+
 class file_handler:
     uploaded_files = {}
     server_switcher = {
@@ -20,6 +21,7 @@ class file_handler:
         "upvid": "https://api.upvid.cc/upload",
     }
 
+    # TODO: Create method for getting correct filepath-divider regardless of OS.
     def __init__(self):
         self.are_servers_up()
         self.load_links()
@@ -126,6 +128,7 @@ class file_handler:
         direct_url = r.text[direct_url_start:direct_url_end]
 
         # Download file
+        # TODO: Make sure the download is memory-safe, and that download doesn't need all pf a machines' memory.
         file_bytes = requests.get(direct_url)
         filepath = ".\\downloads\\" + file_name  # Path for downloaded file.
 
