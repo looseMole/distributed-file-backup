@@ -14,12 +14,10 @@ class encryption_handler(object):
 
 class encryptAES(encryption_handler):
 
-	def __init__(self, folder_path, original_file, encrypted_file):
+	def __init__(self, file_path, original_file, encrypted_file):
 		super().__init__()
 		self.key = None
-		self.folder_path = folder_path
-		self.original_file = original_file
-		self.encrypted_file = encrypted_file
+		self.file_path = file_path
 
 		self.encrypt()
 		self.decrypt()
@@ -32,8 +30,8 @@ class encryptAES(encryption_handler):
 		padder = padding.PKCS7(128).padder()
 		encrypter = cipher.encryptor()
 
-		with open(self.folder_path + self.original_file, "rb") as original_file:
-			with open(self.folder_path + self.encrypted_file, "wb") as encrypted_file:
+		with open(self.file_path, "rb") as original_file:
+			with open(self.file_path + ".edfb", "wb") as encrypted_file:
 				encrypted_file.write(iv)
 
 				original_text = b""
@@ -51,13 +49,13 @@ class encryptAES(encryption_handler):
 				encrypted_file.write(encrypted_text + encrypter.finalize())
 
 	def decrypt(self):
-		with open(self.folder_path + self.encrypted_file, "rb") as encrypted_file:
+		with open(self.file_path + ".edfb", "rb") as encrypted_file:
 			iv = encrypted_file.read(16)
 			cipher = Cipher(algorithms.AES(self.key), modes.CBC(iv), default_backend())  # TODO: Use GCM instead of CBC
 			unpadder = padding.PKCS7(128).unpadder()
 			decryptor = cipher.decryptor()
 
-			with open(self.folder_path + "1GB_decrypted.bin", "wb") as decrypted_file:
+			with open(self.file_path, "wb") as decrypted_file: # TODO: The name for the decrypted file should not be the same as the original
 
 				encrypted_text = b""
 				while True:
@@ -71,6 +69,4 @@ class encryptAES(encryption_handler):
 				unpadded_text = unpadder.update(decrypted_text)
 
 				decrypted_file.write(unpadded_text + unpadder.finalize())
-
-
 

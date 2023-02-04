@@ -6,6 +6,7 @@ import requests
 
 class file_handler:
     uploaded_files = {}
+    csv_file_name = "distributed_file_backup_info.csv"
     server_switcher = {
         "anonfiles": "https://api.anonfiles.com/upload",
         "filechan": "https://api.filechan.org/upload",
@@ -23,33 +24,30 @@ class file_handler:
 
     # TODO: Create method for getting correct filepath-divider regardless of OS.
     def __init__(self):
+
         self.are_servers_up()
         self.load_links()
 
     # Loads information about previously uploaded files, from CSV-file.
     def load_links(self):
         try:
-            with open(".\\uploaded_files.csv", 'r') as f:
+            with open(os.path.expanduser('~\\Documents') + ".\\" + self.csv_file_name, 'r') as f:
                 csv_reader = csv.reader(f)
                 for line in csv_reader:
                     if len(line) > 0:
                         line_parts = line[0].split('|')
                         self.uploaded_files[line_parts[0]] = []
-                        i = 1
-                        # Info loaded in a loop, as files can have an arbitrary amount of download links.
-                        while i < len(line_parts):
-                            self.uploaded_files[line_parts[0]].append(line_parts[i])
-                            i += 1
+                        for i in range(len(line_parts)):
+                            if (i + 1) >= len(line_parts) : break
+                            self.uploaded_files[line_parts[0]].append(line_parts[i+1])
                 f.close()
-            print("Following uploads loaded:")
-            print(self.uploaded_files.__str__())
 
         except FileNotFoundError:
-            print("No previous uploads found")
+            pass
 
     # Checks up-status of the servers specified in server_switcher. Prints result
     def are_servers_up(self):
-        print("Checking servers' status...")
+        print("Checking the status for all servers. This might take a few seconds...")
 
         servers_up = 0
         for key in self.server_switcher.keys():
@@ -61,11 +59,11 @@ class file_handler:
             else:
                 print(key + " status: Not optimal (Response: " + str(r.status_code) + ")")
             if servers_up == len(self.server_switcher.keys()):
-                print("All servers are up")
+                print("All servers are running!")
 
     # Saves information from uploaded_files to a CSV-file.
     def save_links(self):
-        with open(".\\uploaded_files.csv", 'w') as f:
+        with open(os.path.expanduser('~\\Documents') + ".\\" + self.csv_file_name, 'w') as f:
             writer = csv.writer(f)
             keys = list(self.uploaded_files.keys())
             for i in range(len(self.uploaded_files)):
@@ -102,7 +100,7 @@ class file_handler:
             filename = os.path.basename(filepath)
             _files = {"file": (filename, a_file)}
             r = requests.post(url=url, files=_files).json()
-            print(r)  # Print response from server, received as a JSON.
+            #print(r)  # Prnt response from server, received as a JSON.
 
         if r["status"]:
             file_hash = self.get_file_hash(filepath)
@@ -117,12 +115,34 @@ class file_handler:
         else:
             return False
 
-    def download_file(self, file_name, url):
+    def download_file(self, file_hash):
+        # Deconstruct download URL
+        download_url = self.uploaded_files[file_hash][1]  # Note: Currently only tries the first download link.
+        string_list = download_url.split('/')
+
+        # Build info URL:
+        info_url = string_list[0] + "//api." + string_list[2] + "/v2/file/" + string_list[3] + "/info"
+        r = requests.get(url=info_url).json()
+
+        if r["status"]:
+            # Fixes issue with server replacing periods (.) with underscores (_)
+            underscore_name = r['data']['file']['metadata']['name']
+            underscore_index = underscore_name.rindex('_')
+            file_name = list(r['data']['file']['metadata']['name'])
+            file_name[underscore_index] = "."
+            file_name = ''.join(file_name)
+
+            print("\nDownloading file, please wait...")
+
+        else:
+            print("The link: " + download_url + " is broken.")
+            return
+
         if not os.path.exists(".\\downloads"):
             os.makedirs(".\\downloads")
 
         # Get direct download link.
-        r = requests.get(url)
+        r = requests.get(download_url)
         direct_url_start = r.text.find("https://cdn")
         direct_url_end = r.text.find("\"", direct_url_start)
         direct_url = r.text[direct_url_start:direct_url_end]
@@ -138,13 +158,20 @@ class file_handler:
         # Check that downloaded file's hash matches the expected
         downloaded_hash = self.get_file_hash(filepath)
         if self.uploaded_files.get(downloaded_hash)[0] == file_name:
-            print(file_name + " downloaded successfully.")
+            return True
         else:
             print("WARNING: Downloaded file \"" + file_name + "\"'s hash does not match saved info. It might have "
                                                               "been tampered with.")
 
+    def print_file_information(self):
+        for key in self.uploaded_files.keys():
+            print(key + "\t\t" + self.uploaded_files[key][0])
+
     # Checks status on previously uploaded files - prints results to console
     def check_files(self):
+        if len(self.uploaded_files) == 0:
+            return False
+
         for i in range(len(self.uploaded_files)):
             keys = list(self.uploaded_files.keys())
             key = keys[i]
@@ -159,8 +186,9 @@ class file_handler:
                 info_url = string_list[0] + "//api." + string_list[2] + "/v2/file/" + string_list[3] + "/info"
                 r = requests.get(url=info_url).json()
                 if r["status"]:
-                    print("The " + self.uploaded_files[key][0] + " download on " + string_list[2] + " is still valid.")
+                    print("VALID FILE:\t\t\t" + self.uploaded_files[key][0] + " from " + string_list[2])
                 else:
-                    print("The " + self.uploaded_files[key][0] + " link: " + download_url + " is broken.")
+                    print("INVALID FILE:\t\t" + self.uploaded_files[key][0] + " from " + download_url)
                 i += 1
                 # TODO: Automatically ask user to re-upload files from broken links
+        return True
