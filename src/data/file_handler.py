@@ -27,8 +27,6 @@ class file_handler:
     csv_file_path = os.path.expanduser(doc_path)
     csv_file_path = os.path.join(csv_file_path, csv_file_name)
 
-
-    # TODO: Create method for getting correct filepath-divider regardless of OS.
     def __init__(self):
 
         self.are_servers_up()
@@ -154,12 +152,13 @@ class file_handler:
         direct_url = r.text[direct_url_start:direct_url_end]
 
         # Download file
-        # TODO: Make sure the download is memory-safe, and that download doesn't need all pf a machines' memory.
-        file_bytes = requests.get(direct_url)
         filepath = os.path.join('.', 'downloads', file_name)  # Path for downloaded file.
 
-        with open(filepath, 'wb') as f:
-            f.write(file_bytes.content)
+        with requests.get(direct_url, stream=True) as r:
+            r.raise_for_status()
+            with open(filepath, 'wb') as f:
+                c_size = 8192
+                    f.write(chunk)
 
         # Check that downloaded file's hash matches the expected
         downloaded_hash = self.get_file_hash(filepath)
