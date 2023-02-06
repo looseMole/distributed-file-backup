@@ -22,6 +22,12 @@ class file_handler:
         "upvid": "https://api.upvid.cc/upload",
     }
 
+    # Uses os.path to find relative paths to documents, to support different OS' filesystems.
+    doc_path = os.path.join('~', 'Documents')
+    csv_file_path = os.path.expanduser(doc_path)
+    csv_file_path = os.path.join(csv_file_path, csv_file_name)
+
+
     # TODO: Create method for getting correct filepath-divider regardless of OS.
     def __init__(self):
 
@@ -31,7 +37,7 @@ class file_handler:
     # Loads information about previously uploaded files, from CSV-file.
     def load_links(self):
         try:
-            with open(os.path.expanduser('~\\Documents') + ".\\" + self.csv_file_name, 'r') as f:
+            with open(self.csv_file_path, 'r') as f:
                 csv_reader = csv.reader(f)
                 for line in csv_reader:
                     if len(line) > 0:
@@ -63,7 +69,7 @@ class file_handler:
 
     # Saves information from uploaded_files to a CSV-file.
     def save_links(self):
-        with open(os.path.expanduser('~\\Documents') + ".\\" + self.csv_file_name, 'w') as f:
+        with open(self.csv_file_path, 'w') as f:
             writer = csv.writer(f)
             keys = list(self.uploaded_files.keys())
             for i in range(len(self.uploaded_files)):
@@ -100,7 +106,7 @@ class file_handler:
             filename = os.path.basename(filepath)
             _files = {"file": (filename, a_file)}
             r = requests.post(url=url, files=_files).json()
-            #print(r)  # Prnt response from server, received as a JSON.
+            # print(r)  # Print response from server, received as a JSON.
 
         if r["status"]:
             file_hash = self.get_file_hash(filepath)
@@ -138,8 +144,8 @@ class file_handler:
             print("The link: " + download_url + " is broken.")
             return
 
-        if not os.path.exists(".\\downloads"):
-            os.makedirs(".\\downloads")
+        if not os.path.exists(os.path.join('.', 'downloads')):
+            os.makedirs(os.path.join('.', 'downloads'))
 
         # Get direct download link.
         r = requests.get(download_url)
@@ -150,7 +156,7 @@ class file_handler:
         # Download file
         # TODO: Make sure the download is memory-safe, and that download doesn't need all pf a machines' memory.
         file_bytes = requests.get(direct_url)
-        filepath = ".\\downloads\\" + file_name  # Path for downloaded file.
+        filepath = os.path.join('.', 'downloads', file_name)  # Path for downloaded file.
 
         with open(filepath, 'wb') as f:
             f.write(file_bytes.content)
