@@ -135,6 +135,8 @@ class file_handler:
             file_name = list(r['data']['file']['metadata']['name'])
             file_name[underscore_index] = "."
             file_name = ''.join(file_name)
+            file_size = r['data']['file']['metadata']['size']['bytes']
+            file_size_readable = r['data']['file']['metadata']['size']['readable']
 
             print("\nDownloading file, please wait...")
 
@@ -151,14 +153,23 @@ class file_handler:
         direct_url_end = r.text.find("\"", direct_url_start)
         direct_url = r.text[direct_url_start:direct_url_end]
 
-        # Download file
         filepath = os.path.join('.', 'downloads', file_name)  # Path for downloaded file.
 
+        # Download is streamed, in chunks of 64KB as opposed to loaded entirely into memory.
         with requests.get(direct_url, stream=True) as r:
-            r.raise_for_status()
+            r.raise_for_status()  # Will raise error, if response is bad.
             with open(filepath, 'wb') as f:
-                c_size = 8192
-                    f.write(chunk)
+                downloaded_bytes = 0
+                c_size = 65536  # Size of chunk to load into memory.
+                for chunk in r.iter_content(chunk_size=c_size):
+                    down_percent = round((downloaded_bytes/file_size*100), 2)  # Percent downloaded, based on amount of chunks downloaded.
+                    if down_percent > 100: down_percent = str(100)  # More than 100% does not make sense.
+                    else: down_percent = str(down_percent)
+
+                    print("Approx. " + str((downloaded_bytes/1024)) + " KB out of " + file_size_readable + " downloaded (" + down_percent + "%).")
+
+                    f.write(chunk)  # Write to file
+                    downloaded_bytes += c_size
 
         # Check that downloaded file's hash matches the expected
         downloaded_hash = self.get_file_hash(filepath)
