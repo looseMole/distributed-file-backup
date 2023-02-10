@@ -10,7 +10,11 @@ class CLI:
 
         while True:
             self.print_help()
-            msg = int(input(">>>"))
+            try:
+                msg = int(input(">>>"))
+            except ValueError:
+                print("\nThis input is not allowed!")
+                continue
 
             if msg == 1:  # Upload
                 print("\nPlease type the full path to the file you want to upload:")
@@ -24,8 +28,8 @@ class CLI:
                 print(str(server_list), sep=", ")
                 msg_server_choice = input(">>>")
 
-                if domain_object.upload_file(msg_file_path, msg_server_choice):
-                    print("File successfully uploaded!")
+                if domain_object.upload_file(msg_file_path, "AES", msg_server_choice): # TODO: Let the use choose between different encryption algorithms
+                    print("\nFile successfully uploaded!\nThe file can be downloaded again through the option: [2] Download file")
 
                 else:
                     print("An error occurred while uploading the file.")
@@ -37,9 +41,6 @@ class CLI:
                 msg_download_file = input(">>>")
                 if domain_object.download_file(msg_download_file):
                     print("File successfully downloaded!")
-
-                else:
-                    print("An error occurred while downloading the file.")
 
             elif msg == 3:  # Check files
                 if not domain_object.check_files():
