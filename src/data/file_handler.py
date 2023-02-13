@@ -229,7 +229,6 @@ class file_handler:
                 string_list = download_url.split('/')
 
                 # Build info URL:
-                print(string_list)
                 info_url = string_list[0] + "//api." + string_list[2] + "/v2/file/" + string_list[3] + "/info"
                 r = requests.get(url=info_url).json()
 
