@@ -22,8 +22,11 @@ class domain:
 		if not self.fh.upload_file(encrypted_file_path, server, file_hash, encryption_key, encryption_method):
 			return False
 
-		os.remove(encrypted_file_path)
-		return True # Upload was successful
+		try:
+			os.remove(encrypted_file_path)
+		except FileNotFoundError:
+			print("ERROR: Tried to remove a non-existent file.")
+		return True  # Upload was successful
 
 	def download_file(self, file_hash):
 		download_feedback = self.fh.download_file(file_hash)
