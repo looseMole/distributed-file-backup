@@ -1,3 +1,4 @@
 ﻿.idea
 src/presentation/downloads
 *.pyc
+src/temp

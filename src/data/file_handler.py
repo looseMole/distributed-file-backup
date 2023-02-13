@@ -2,6 +2,7 @@ import os
 import csv
 import hashlib
 import requests
+from tqdm import tqdm
 
 
 class file_handler:
@@ -67,14 +68,14 @@ class file_handler:
 
     # Saves information from uploaded_files to a CSV-file.
     def save_links(self):
-        with open(self.csv_file_path, 'w') as f:
+        with open(self.csv_file_path, 'w', newline='') as f:
             writer = csv.writer(f)
             keys = list(self.uploaded_files.keys())
             for i in range(len(self.uploaded_files)):
                 key = keys[i]
                 file_string = key
-                for i in range(len(self.uploaded_files[key])):
-                    file_string += "|" + self.uploaded_files[key][i]
+                for j in range(len(self.uploaded_files[key])):
+                    file_string += "|" + self.uploaded_files[key][j]
 
                 writer.writerow([file_string])
             f.close()
@@ -92,11 +93,17 @@ class file_handler:
                 sha1.update(data)
         return sha1.hexdigest()
 
+    def get_encryption_key(self, filehash):
+        for _filehash in self.uploaded_files:
+            if _filehash == filehash:
+                return self.uploaded_files.get(_filehash)[2]
+        return None
+
     # Uploads file to specified server, then calls save_links().
-    def upload_file(self, filepath, server):
+    def upload_file(self, filepath, server, file_hash, encryption_key, encryption_method):
         url = self.server_switcher.get(server, "")
         if url == "":
-            print("Invalid server.")
+            print("\nERROR: Invalid server!")
             return False
 
         # TODO: Create exception handling for invalid filepath.
@@ -108,22 +115,39 @@ class file_handler:
             # print(r)  # Print response from server, received as a JSON.
 
         if r["status"]:
-            file_hash = self.get_file_hash(filepath)
             download_url = r["data"]["file"]["url"]["full"]
             # If a file with this SHA1-hash has already been uploaded, append the download to that file.
             if file_hash in self.uploaded_files:
                 self.uploaded_files[file_hash].append(download_url)
+                self.uploaded_files[file_hash].append(encryption_key.hex())
+                self.uploaded_files[file_hash].append(encryption_method)
             else:
-                self.uploaded_files[file_hash] = [filename, download_url]
+                self.uploaded_files[file_hash] = [filename, download_url, encryption_key.hex(), encryption_method]
             self.save_links()
             return True
         else:
             return False
 
     def download_file(self, file_hash):
-        # Deconstruct download URL
-        download_url = self.uploaded_files[file_hash][1]  # Note: Currently only tries the first download link.
-        string_list = download_url.split('/')
+        try:
+            # Deconstruct download URL
+            download_url = self.uploaded_files[file_hash][1]  # Note: Currently only tries the first download link.
+            string_list = download_url.split('/')
+        except KeyError:
+            n = 0
+            represented_hash = ""
+            for i in self.uploaded_files.keys():
+                if str(i[0:len(file_hash)]) == str(file_hash):
+                    n += 1
+                    represented_hash = i
+            if n == 1:
+                file_hash = represented_hash
+                download_url = self.uploaded_files[file_hash][1]  # Note: Currently only tries the first download link.
+                string_list = download_url.split('/')
+            else:
+                print("\nERROR: Not a valid file hash!")
+                return [False, None, None, None]
+
 
         # Build info URL:
         info_url = string_list[0] + "//api." + string_list[2] + "/v2/file/" + string_list[3] + "/info"
@@ -137,16 +161,15 @@ class file_handler:
             file_name[underscore_index] = "."
             file_name = ''.join(file_name)
             file_size = r['data']['file']['metadata']['size']['bytes']
-            file_size_readable = r['data']['file']['metadata']['size']['readable']
 
             print("\nDownloading file, please wait...")
 
         else:
             print("The link: " + download_url + " is broken.")
-            return
+            return [False, None, None, None]
 
-        if not os.path.exists(os.path.join('.', 'downloads')):
-            os.makedirs(os.path.join('.', 'downloads'))
+        if not os.path.exists(os.path.join('.', 'temp')):
+            os.makedirs(os.path.join('.', 'temp'))
 
         # Get direct download link.
         r = requests.get(download_url)
@@ -154,7 +177,7 @@ class file_handler:
         direct_url_end = r.text.find("\"", direct_url_start)
         direct_url = r.text[direct_url_start:direct_url_end]
 
-        filepath = os.path.join('.', 'downloads', file_name)  # Path for downloaded file.
+        filepath = os.path.join('.', 'temp', file_name)  # Path for temp folder.
 
         # Download is streamed, in chunks of 64KB as opposed to loaded entirely into memory.
         with requests.get(direct_url, stream=True) as r:
@@ -162,23 +185,26 @@ class file_handler:
             with open(filepath, 'wb') as f:
                 downloaded_bytes = 0
                 c_size = 65536  # Size of chunk to load into memory.
+                progress_bar = tqdm(total=file_size, unit='B', unit_scale=True)
                 for chunk in r.iter_content(chunk_size=c_size):
-                    down_percent = round((downloaded_bytes/file_size*100), 2)  # Percent downloaded, based on amount of chunks downloaded.
-                    if down_percent > 100: down_percent = str(100)  # More than 100% does not make sense.
-                    else: down_percent = str(down_percent)
-
-                    print("Approx. " + str((downloaded_bytes/1024)) + " KB out of " + file_size_readable + " downloaded (" + down_percent + "%).")
-
                     f.write(chunk)  # Write to file
                     downloaded_bytes += c_size
 
+                    progress_bar.update(c_size)
+
         # Check that downloaded file's hash matches the expected
         downloaded_hash = self.get_file_hash(filepath)
-        if self.uploaded_files.get(downloaded_hash)[0] == file_name:
+        encryption_key = self.get_encryption_key(downloaded_hash)
+
+
+        return [True, filepath, encryption_key, file_hash]
+
+    def compare_hash(self, filepath, file_hash):
+        new_hash = self.get_file_hash(filepath)
+        if new_hash == file_hash:
             return True
         else:
-            print("WARNING: Downloaded file \"" + file_name + "\"'s hash does not match saved info. It might have "
-                                                              "been tampered with.")
+            return False
 
     def print_file_information(self):
         for key in self.uploaded_files.keys():
@@ -193,10 +219,9 @@ class file_handler:
             keys = list(self.uploaded_files.keys())
             key = keys[i]
 
-            i = 1
-            while i < len(self.uploaded_files[key]):
+            for j in range(1, len(self.uploaded_files[key]), 3):
                 # Deconstruct download URL
-                download_url = self.uploaded_files[key][i]
+                download_url = self.uploaded_files[key][j]
                 string_list = download_url.split('/')
 
                 # Build info URL:
