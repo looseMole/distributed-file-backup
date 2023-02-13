@@ -93,11 +93,8 @@ class CLI:
                                     print("File downloaded.")
 
                                 string_list = good_down_name.split('.')
-                                server = string_list[0] #  Get upload_file server name
-                                print(server)
+                                server = string_list[0] #  Get upload_file server name.
                                 filepath = os.path.join('.', file_name.replace(".edfb", "")) # Get path of downloaded file TODO: Change upload folder according to download folder.
-                                print(filepath)
-                                print(enc_method)
                                 if domain_object.upload_file(filepath, enc_method, server):  # Re-upload file. Assume a failed download means file already exists.
                                     print("\nFile successfully uploaded!\nThe file can be downloaded again through the option: [2] Download file")
                                 else:

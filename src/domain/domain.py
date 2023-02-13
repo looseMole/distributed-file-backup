@@ -22,7 +22,8 @@ class domain:
 		if not self.fh.upload_file(encrypted_file_path, server, file_hash, encryption_key, encryption_method):
 			return False
 
-		return os.remove(encrypted_file_path)
+		os.remove(encrypted_file_path)
+		return True # Upload was successful
 
 	def download_file(self, file_hash):
 		download_feedback = self.fh.download_file(file_hash)
