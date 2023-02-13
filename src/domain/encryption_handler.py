@@ -62,21 +62,34 @@ class encryptAES:
 		encrypter = cipher.encryptor()
 
 		# Opens the original file
-		with open(filepath, "rb") as original_file:
-			# Opens the file for what should be encrypted
-			with open(filepath + ".edfb", "wb") as encrypted_file:
-				# Writes the mode type in the file
-				encrypted_file.write(iv)
+		try:
+			with open(filepath, "rb") as original_file:
 
-				# Reads the raw data from the file
-				padded_text = padder.update(original_file.read(-1))
-				padded_text += padder.finalize()
-				encrypted_text = encrypter.update(padded_text)
-				encrypted_file.write(encrypted_text + encrypter.finalize())
+				if not os.path.exists(os.path.join('.', 'temp')):
+					os.makedirs(os.path.join('.', 'temp'))
 
-		# Closes the files
-		original_file.close()
-		encrypted_file.close()
+				filename = filepath.split(os.path.sep)[-1]
+
+				# Opens the file for what should be encrypted
+				with open(os.path.join(os.getcwd(), "temp", filename + ".edfb"), "wb") as encrypted_file:
+					# Writes the mode type in the file
+					encrypted_file.write(iv)
+
+					# Reads the raw data from the file
+					padded_text = padder.update(original_file.read(-1))
+					padded_text += padder.finalize()
+					encrypted_text = encrypter.update(padded_text)
+					encrypted_file.write(encrypted_text + encrypter.finalize())
+
+			# Closes the files
+			original_file.close()
+			encrypted_file.close()
+		except FileNotFoundError:
+			print("\nERROR: This file doesn't exist!")
+			return [False, False]
+		except:
+			print("\nERROR: An error occurred while accessing the file")
+			return [False, False]
 
 		# Returns the encrypted file name and encryption key
 		return [encrypted_file.name, encryption_key]
@@ -99,34 +112,39 @@ class encryptAES:
 			encryption_key = self.encryption_key
 
 		# Opens the encrypted file
-		with open(encrypted_filepath, "rb") as encrypted_file:
-			# Retrieves information from the file
-			iv = encrypted_file.read(16)
+		try:
+			with open(encrypted_filepath, "rb") as encrypted_file:
+				# Retrieves information from the file
+				iv = encrypted_file.read(16)
 
-			# Creates the objects for decrypting the file
-			cipher = Cipher(algorithms.AES(bytes.fromhex(encryption_key)), modes.CBC(iv), default_backend())  # TODO: Use GCM instead of CBC
-			unpadder = padding.PKCS7(128).unpadder()
-			decryptor = cipher.decryptor()
+				# Creates the objects for decrypting the file
+				cipher = Cipher(algorithms.AES(bytes.fromhex(encryption_key)), modes.CBC(iv), default_backend())  # TODO: Use GCM instead of CBC
+				unpadder = padding.PKCS7(128).unpadder()
+				decryptor = cipher.decryptor()
 
-			# Opens a new file for the decrypted file
-			decrypted_file_location = os.path.join(os.path.join(f"{os.path.sep}".join(encrypted_filepath.split(os.path.sep)[0:-1])), ".".join(encrypted_filepath.split(os.path.sep)[-1].split(".")[0:-1]))
+				# Opens a new file for the decrypted file
+				decrypted_file_location = os.path.join(os.path.join(f"{os.path.sep}".join(encrypted_filepath.split(os.path.sep)[0:-1])), ".".join(encrypted_filepath.split(os.path.sep)[-1].split(".")[0:-1]))
 
-			with open(decrypted_file_location, "wb") as decrypted_file: # TODO: The name for the decrypted file should not be the same as the original
-				# Decrypts the data and writes it to the decrypted file
-				decrypted_text = decryptor.update(encrypted_file.read(-1))
-				unpadded_text = unpadder.update(decrypted_text)
-				decrypted_file.write(unpadded_text + unpadder.finalize())
+				with open(decrypted_file_location, "wb") as decrypted_file: # TODO: The name for the decrypted file should not be the same as the original
+					# Decrypts the data and writes it to the decrypted file
+					decrypted_text = decryptor.update(encrypted_file.read(-1))
+					unpadded_text = unpadder.update(decrypted_text)
+					decrypted_file.write(unpadded_text + unpadder.finalize())
 
-		# Closes both files
-		decrypted_file.close()
-		encrypted_file.close()
+			# Closes both files
+			decrypted_file.close()
+			encrypted_file.close()
+		except FileNotFoundError:
+			print("\nERROR: This file dosen't exist")
+			return [False, False]
 
 		# Removes the encrypted file, since it doesn't need to be used anymore
 		os.remove(encrypted_filepath)
 		try:
 			move(decrypted_file_location, os.path.join(".")) # TODO: Check if it works
 		except shutil.Error:
-			print("File already exists")
+			print("\nWARNING: The file already exists. It was NOT overridden!")
+			return False
 
 		# Returns true, because the file was successfully decrypted
 		return True

@@ -31,16 +31,13 @@ class CLI:
                 if domain_object.upload_file(msg_file_path, "AES", msg_server_choice): # TODO: Let the use choose between different encryption algorithms
                     print("\nFile successfully uploaded!\nThe file can be downloaded again through the option: [2] Download file")
 
-                else:
-                    print("An error occurred while uploading the file.")
-
             elif msg == 2:  # Download
                 print("\nPlease choose a file from the table below:")
                 domain_object.fh.print_file_information()
                 print("")
                 msg_download_file = input(">>>")
                 if domain_object.download_file(msg_download_file):
-                    print("File successfully downloaded!")
+                    print("\nFile successfully downloaded!")
 
             elif msg == 3:  # Check files
                 if not domain_object.check_files():

@@ -103,7 +103,7 @@ class file_handler:
     def upload_file(self, filepath, server, file_hash, encryption_key, encryption_method):
         url = self.server_switcher.get(server, "")
         if url == "":
-            print("Invalid server.")
+            print("\nERROR: Invalid server!")
             return False
 
         # TODO: Create exception handling for invalid filepath.
@@ -128,9 +128,25 @@ class file_handler:
             return False
 
     def download_file(self, file_hash):
-        # Deconstruct download URL
-        download_url = self.uploaded_files[file_hash][1]  # Note: Currently only tries the first download link.
-        string_list = download_url.split('/')
+        try:
+            # Deconstruct download URL
+            download_url = self.uploaded_files[file_hash][1]  # Note: Currently only tries the first download link.
+            string_list = download_url.split('/')
+        except KeyError:
+            n = 0
+            represented_hash = ""
+            for i in self.uploaded_files.keys():
+                if str(i[0:len(file_hash)]) == str(file_hash):
+                    n += 1
+                    represented_hash = i
+            if n == 1:
+                file_hash = represented_hash
+                download_url = self.uploaded_files[file_hash][1]  # Note: Currently only tries the first download link.
+                string_list = download_url.split('/')
+            else:
+                print("\nERROR: Not a valid file hash!")
+                return [False, None, None, None]
+
 
         # Build info URL:
         info_url = string_list[0] + "//api." + string_list[2] + "/v2/file/" + string_list[3] + "/info"
@@ -149,7 +165,7 @@ class file_handler:
 
         else:
             print("The link: " + download_url + " is broken.")
-            return [False, None]
+            return [False, None, None, None]
 
         if not os.path.exists(os.path.join('.', 'temp')):
             os.makedirs(os.path.join('.', 'temp'))
@@ -180,7 +196,7 @@ class file_handler:
         encryption_key = self.get_encryption_key(downloaded_hash)
 
 
-        return [True, filepath, encryption_key]
+        return [True, filepath, encryption_key, file_hash]
 
     def compare_hash(self, filepath, file_hash):
         new_hash = self.get_file_hash(filepath)
