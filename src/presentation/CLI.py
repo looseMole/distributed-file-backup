@@ -42,16 +42,17 @@ class CLI:
 
             elif msg == 3:  # Check files
                 response = domain_object.check_files()
-                if not response[0] and len(response[1]) == 0:
+                if len(response) == 1 and not response[0]:
                     print("No previously uploaded files found.")
 
                 elif not response[0]:
                     broken_links = response[1]
                     uploaded_files = domain_object.fh.uploaded_files
 
-                    for i in range(0, len(broken_links), 2):
+                    for i in range(0, len(broken_links), 3):
                         key = broken_links[i]
                         broken_url = broken_links[i + 1]
+                        enc_method = broken_links[i + 2]
                         amount_of_valid_links = 0
                         file_name = uploaded_files[key][0]
 
@@ -74,7 +75,7 @@ class CLI:
                             print(
                                 "Would you like to download \"" + file_name + "\" from " + good_down_name +
                                 ", and re-upload it to " + broken_down_name + "?\t(Y/N)")
-                            valid_responses = {'y', 'Y', 'n', 'N'}
+                            valid_responses = ['y', 'Y', 'n', 'N']
                             usr_resp = input(">>>")
 
                             # Make sure to get a valid response.
@@ -86,15 +87,21 @@ class CLI:
                                 usr_resp = input(">>>")
 
                             if usr_resp in valid_responses[0:1]:
-                                # Download file from valid link:
-                                if domain_object.download_file(key):
-                                    string_list = good_down_name.split('.')
-                                    server = string_list[0] #  Get upload_file server name
+                                # Download file from valid link:  TODO: Check if the file is already downloaded, and if so, don't download it again.
+                                domain_object.fh.remove_download_link(key, broken_url)
+                                if domain_object.download_file(key): # NB: Only tries to download once. Should this be changed?
+                                    print("File downloaded.")
 
-                                    filepath = os.path.join('.', 'downloads', file_name) # Get path of downloaded file.
-                                    domain_object.upload_file(filepath, server)  # Re-upload file.
+                                string_list = good_down_name.split('.')
+                                server = string_list[0] #  Get upload_file server name
+                                print(server)
+                                filepath = os.path.join('.', file_name.replace(".edfb", "")) # Get path of downloaded file TODO: Change upload folder according to download folder.
+                                print(filepath)
+                                print(enc_method)
+                                if domain_object.upload_file(filepath, enc_method, server):  # Re-upload file. Assume a failed download means file already exists.
+                                    print("\nFile successfully uploaded!\nThe file can be downloaded again through the option: [2] Download file")
                                 else:
-                                    print("Error in downloading file.")  # NB: Only tries to download once. Should this be changed?
+                                    print("Error in uploading file.")
 
 
                             elif usr_resp in valid_responses[2:]:
@@ -104,7 +111,7 @@ class CLI:
                             print("\nNo valid alternative downloads found.")
                             print("Would you like to remove \"" + file_name + "\" from list of uploaded files?\t(Y/N)")
 
-                            valid_responses = {'y', 'Y', 'n', 'N'}
+                            valid_responses = ['y', 'Y', 'n', 'N']
                             usr_resp = input(">>>")
 
                             # Make sure to get a valid response.
@@ -115,7 +122,6 @@ class CLI:
 
                             if usr_resp in valid_responses[0:1]:
                                 domain_object.fh.remove_download_link(key, broken_url)
-                                # TODO: FINISH THIS
                 else:
                     pass  # All file download links were valid.
 
