@@ -24,9 +24,10 @@ class domain:
 
 		try:
 			os.remove(encrypted_file_path)
+			return True
 		except FileNotFoundError:
-			print("ERROR: Tried to remove a non-existent file.")
-		return True  # Upload was successful
+			print("ERROR: Could not remove the encrypted file from the temp folder.")
+			return False
 
 	def download_file(self, file_hash):
 		download_feedback = self.fh.download_file(file_hash)
