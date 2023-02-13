@@ -1,4 +1,5 @@
 from src.domain.domain import domain
+import os
 
 
 class CLI:
@@ -42,8 +43,84 @@ class CLI:
                     print("An error occurred while downloading the file.")
 
             elif msg == 3:  # Check files
-                if not domain_object.check_files():
+                response = domain_object.check_files()
+                if not response[0] and len(response[1]) == 0:
                     print("No previously uploaded files found.")
+
+                elif not response[0]:
+                    broken_links = response[1]
+                    uploaded_files = domain_object.fh.uploaded_files
+
+                    for i in range(0, len(broken_links), 2):
+                        key = broken_links[i]
+                        broken_url = broken_links[i + 1]
+                        amount_of_valid_links = 0
+                        file_name = uploaded_files[key][0]
+
+                        string_list = broken_url.split('/')
+                        broken_down_name = string_list[2]
+
+                        #  Finds first valid alt link for file:
+                        for j in range(1, len(uploaded_files[key]), 3):
+                            if not uploaded_files[key][j] in broken_links:
+                                amount_of_valid_links += 1
+                                good_url = uploaded_files[key][j]
+
+                                string_list = good_url.split('/')
+                                good_down_name = string_list[2]
+                                break
+
+                        print("\n\"" + uploaded_files[key][0] + "\"" + " link: " + broken_url + " is broken.")
+
+                        if amount_of_valid_links > 0:
+                            print(
+                                "Would you like to download \"" + file_name + "\" from " + good_down_name +
+                                ", and re-upload it to " + broken_down_name + "?\t(Y/N)")
+                            valid_responses = {'y', 'Y', 'n', 'N'}
+                            usr_resp = input(">>>")
+
+                            # Make sure to get a valid response.
+                            while not usr_resp in valid_responses:
+                                print("Invalid input.\n")
+                                print(
+                                    "Would you like to download \"" + file_name + "\" from " + good_down_name +
+                                    ", and re-upload it to " + broken_down_name + "?\t(Y/N)")
+                                usr_resp = input(">>>")
+
+                            if usr_resp in valid_responses[0:1]:
+                                # Download file from valid link:
+                                if domain_object.download_file(key):
+                                    string_list = good_down_name.split('.')
+                                    server = string_list[0] #  Get upload_file server name
+
+                                    filepath = os.path.join('.', 'downloads', file_name) # Get path of downloaded file.
+                                    domain_object.upload_file(filepath, server)  # Re-upload file.
+                                else:
+                                    print("Error in downloading file.")  # NB: Only tries to download once. Should this be changed?
+
+
+                            elif usr_resp in valid_responses[2:]:
+                                print("No download links deleted.")
+
+                        else:  # No valid download links for this file.
+                            print("\nNo valid alternative downloads found.")
+                            print("Would you like to remove \"" + file_name + "\" from list of uploaded files?\t(Y/N)")
+
+                            valid_responses = {'y', 'Y', 'n', 'N'}
+                            usr_resp = input(">>>")
+
+                            # Make sure to get a valid response.
+                            while not usr_resp in valid_responses:
+                                print("Invalid input.\n")
+                                print("Would you like to remove \"" + file_name + "\" from list of uploaded files?\t(Y/N)")
+                                usr_resp = input(">>>")
+
+                            if usr_resp in valid_responses[0:1]:
+                                domain_object.fh.remove_download_link(key, broken_url)
+                                # TODO: FINISH THIS
+                else:
+                    pass  # All file download links were valid.
+
 
             elif msg == 4:
                 print("Quitting")

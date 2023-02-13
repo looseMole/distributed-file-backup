@@ -104,6 +104,7 @@ class file_handler:
             filename = os.path.basename(filepath)
             _files = {"file": (filename, a_file)}
             r = requests.post(url=url, files=_files).json()
+            a_file.close()
             # print(r)  # Print response from server, received as a JSON.
 
         if r["status"]:
@@ -201,10 +202,25 @@ class file_handler:
                 # Build info URL:
                 info_url = string_list[0] + "//api." + string_list[2] + "/v2/file/" + string_list[3] + "/info"
                 r = requests.get(url=info_url).json()
+
+                broken_links = {}
                 if r["status"]:
                     print("VALID FILE:\t\t\t" + self.uploaded_files[key][0] + " from " + string_list[2])
                 else:
                     print("INVALID FILE:\t\t" + self.uploaded_files[key][0] + " from " + download_url)
+                    broken_links.append([key])
+                    broken_links.append(download_url)
                 i += 1
                 # TODO: Automatically ask user to re-upload files from broken links
-        return True
+
+        if len(broken_links) == 0:
+            return True
+        else:
+            return {False, broken_links}
+
+    def remove_download_link(self, hash, url_to_remove):
+        index_of_url = self.uploaded_files[hash].index(url_to_remove)
+
+        self.uploaded_files[hash].remove(index_of_url)  # Removes the link.
+        self.uploaded_files[hash].remove(index_of_url)  # Removes the associated key.
+        self.uploaded_files[hash].remove(index_of_url)  # Removes the associated encryption method.
