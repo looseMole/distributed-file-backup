@@ -58,6 +58,7 @@ class CLI:
 
                         string_list = broken_url.split('/')
                         broken_down_name = string_list[2]
+                        good_down_name = ""  # Is given value in the following for-loop.
 
                         #  Finds first valid alt link for file:
                         for j in range(1, len(uploaded_files[key]), 3):
@@ -93,13 +94,12 @@ class CLI:
                                     print("File downloaded.")
 
                                 string_list = good_down_name.split('.')
-                                server = string_list[0] #  Get upload_file server name.
-                                filepath = os.path.join('.', file_name.replace(".edfb", "")) # Get path of downloaded file TODO: Change upload folder according to download folder.
+                                server = string_list[0]  # Get upload_file server name.
+                                filepath = os.path.join('.', file_name.replace(".edfb", ""))  # Get path of downloaded file TODO: Change upload folder according to download folder.
                                 if domain_object.upload_file(filepath, enc_method, server):  # Re-upload file. Assume a failed download means file already exists.
                                     print("\nFile successfully uploaded!\nThe file can be downloaded again through the option: [2] Download file")
                                 else:
                                     print("Error in uploading file.")
-
 
                             elif usr_resp in valid_responses[2:]:
                                 print("No download links deleted.")
@@ -112,7 +112,7 @@ class CLI:
                             usr_resp = input(">>>")
 
                             # Make sure to get a valid response.
-                            while not usr_resp in valid_responses:
+                            while usr_resp not in valid_responses:
                                 print("Invalid input.\n")
                                 print("Would you like to remove \"" + file_name + "\" from list of uploaded files?\t(Y/N)")
                                 usr_resp = input(">>>")
@@ -121,7 +121,6 @@ class CLI:
                                 domain_object.fh.remove_download_link(key, broken_url)
                 else:
                     pass  # All file download links were valid.
-
 
             elif msg == 4:
                 print("Quitting")
