@@ -1,5 +1,9 @@
-from src.domain.domain import domain
 import os
+
+if os.name == 'nt':
+    from src.domain.domain import domain
+else:
+    from domain.domain import domain
 
 
 class CLI:

@@ -1,6 +1,11 @@
 import os
-from src.data.file_handler import file_handler
-from src.domain.encryption_handler import encryption_handler
+
+if os.name == 'nt':
+	from src.data.file_handler import file_handler
+	from src.domain.encryption_handler import encryption_handler
+else:
+	from data.file_handler import file_handler
+	from domain.encryption_handler import encryption_handler
 
 
 class domain:
