@@ -69,17 +69,20 @@ class file_handler:
 
     # Saves information from uploaded_files to a CSV-file.
     def save_links(self):
-        with open(self.csv_file_path, 'w', newline='') as f:
-            writer = csv.writer(f)
-            keys = list(self.uploaded_files.keys())
-            for i in range(len(self.uploaded_files)):
-                key = keys[i]
-                file_string = key
-                for j in range(len(self.uploaded_files[key])):
-                    file_string += "|" + self.uploaded_files[key][j]
+        try:
+            with open(self.csv_file_path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                keys = list(self.uploaded_files.keys())
+                for i in range(len(self.uploaded_files)):
+                    key = keys[i]
+                    file_string = key
+                    for j in range(len(self.uploaded_files[key])):
+                        file_string += "|" + self.uploaded_files[key][j]
 
-                writer.writerow([file_string])
-            f.close()
+                    writer.writerow([file_string])
+                f.close()
+        except FileNotFoundError:
+            open(self.csv_file_path, 'x')
 
     # Returns hash of the file corresponding to the given filepath.
     def get_file_hash(self, filepath):
