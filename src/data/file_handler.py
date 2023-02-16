@@ -214,7 +214,7 @@ class file_handler:
     # Checks status on previously uploaded files - prints results to console
     def check_files(self):
         if len(self.uploaded_files) == 0:
-            return False
+            return [False]
 
         broken_links = []
 
